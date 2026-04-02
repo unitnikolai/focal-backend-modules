@@ -1,0 +1,18 @@
+{
+  "name": "oauth2callback",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "crypto": "^1.0.1",
+    "qs": "^6.15.0"
+  }
+}

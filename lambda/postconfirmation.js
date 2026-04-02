@@ -42,7 +42,7 @@ export const handler = async (event) => {
     
     await client.end();
     console.log(`User ${userId} created successfully`);
-    
+         
     return event;
   } catch (error) {
     console.error("Error in post-confirmation handler:", error);

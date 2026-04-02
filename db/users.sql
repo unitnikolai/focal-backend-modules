@@ -42,6 +42,11 @@ CREATE TABLE sessions (
     metadata JSONB
 );
 
+CREATE TABLE organizations(
+    organization_id VARCHAR(255) NOT NULL REFERENCES organizations(id),
+    organization_name VARCHAR(255)
+)
+
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX idx_sessions_tag_id ON sessions(tag_id);
 CREATE INDEX idx_sessions_status ON sessions(status);
