@@ -1,27 +1,38 @@
-const AWS = require('aws-sdk');
-const dynamo = new AWS.DynamoDB.DocumentClient();
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
-export const handler = async (req, res) => {
-    try{
-        const userID = req.user.sub;
-        const organizationID = req.user["custom:organization_id"]; //Change to real way organization ID is stored
+const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient());
 
-        const now = Math.floor(Date.now() / 1000);
-
-        const sessions = data.Items.filter(item => item.organization_id === organizationID)
-            .map(item => ({
-                device_id: item.device_id,
-                tag_id: item.tag_id,
-                status: item.status,
-                timestamp: item.timestamp   
-            }));
-        res.json({ sessions });
-        return{
-            statusCode: 200,
-            body: JSON.stringify({ sessions })
+export const handler = async (event) => {
+    try {
+        const { session_id } = JSON.parse(event.body);
+        if (!session_id) {
+            return { statusCode: 400, body: JSON.stringify({ error: "Missing required field: session_id" }) };
         }
-    }catch (error) {
-        console.error("", error);
+
+        const now = new Date().toISOString();
+
+        await dynamo.send(new UpdateCommand({
+            TableName: process.env.SESSIONS_TABLE,
+            Key: { session_id },
+            UpdateExpression: "SET #s = :status, status_since = :now",
+            ConditionExpression: "attribute_exists(session_id)",
+            ExpressionAttributeNames: { "#s": "status" },
+            ExpressionAttributeValues: {
+                ":status": "inactive",
+                ":now": now,
+            },
+        }));
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ message: "Session marked inactive", session_id }),
+        };
+    } catch (error) {
+        if (error.name === "ConditionalCheckFailedException") {
+            return { statusCode: 404, body: JSON.stringify({ error: "Session not found" }) };
+        }
+        console.error("Error updating session status:", error);
         return { statusCode: 500, body: JSON.stringify({ error: "Internal Server Error" }) };
-    } 
-}
+    }
+};

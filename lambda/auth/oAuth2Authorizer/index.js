@@ -28,6 +28,23 @@ const verifier = CognitoJwtVerifier.create({
 });
 
 exports.handler = async (event) => {
+    // --- Bearer token path (React Native / mobile clients) ---
+    const authHeader = event.headers?.authorization || event.headers?.Authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.slice(7);
+        try {
+            const payload = await verifier.verify(token);
+            return {
+                isAuthorized: true,
+                context: { sub: payload.sub },
+            };
+        } catch (e) {
+            console.error('Bearer token invalid:', e.message);
+            return { isAuthorized: false };
+        }
+    }
+
+    // --- Cookie path (web clients) ---
     if (event.cookies == null){
         console.log("No cookies found");
         return {
@@ -61,9 +78,10 @@ exports.handler = async (event) => {
         }
     }
     try{
-        await verifier.verify(accessToken);
+        const payload = await verifier.verify(accessToken);
         return {
             isAuthorized: true,
+            context: { sub: payload.sub },
         };
     } catch (e) {
         console.error(e);

@@ -18,26 +18,47 @@ const getPool = async () => {
         password: creds.password,
         database: creds.dbname,
         port: 5432,
-        ssl: { rejectUnauthorized : true},
+        ssl: { rejectUnauthorized : false },
         connectionTimeoutMillis: 5000
     });
     return pool;
 };
 
-export const handler = async (req, res) => {
-    const userId = req.user.sub;
+function getSubFromCookies(cookies) {
+    for (const c of cookies ?? []) {
+        const [key, ...rest] = c.split('=');
+        if (key.trim() === 'accessToken') {
+            const token = rest.join('=');
+            const parts = token.split('.');
+            if (parts.length < 2 || !parts[1]) return null;
+            try {
+                const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+                return payload?.sub ?? null;
+            } catch {
+                return null;
+            }
+        }
+    }
+    return null;
+}
+
+export const handler = async (event) => {
+    const userId = getSubFromCookies(event.cookies);
+    if (!userId) {
+        return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+    }
     const pool = await getPool();
     try {
         const { rows } = await pool.query(
-            "SELECT email, given_name, family_name, organization_id FROM users WHERE id = $1",
+            "SELECT email, given_name, family_name, organization_id, organization_name FROM users JOIN organizations ON users.organization_id = organizations.id WHERE users.id = $1",
             [userId]
         );
-        if (!rows[0]){
-            return res.status(404).json({ error: "User not found" });
+        if (!rows[0]) {
+            return { statusCode: 404, body: JSON.stringify({ error: "User not found" }) };
         }
-        res.json(rows[0]);
+        return { statusCode: 200, body: JSON.stringify(rows[0]) };
     } catch (e) {
         console.error(e);
-        res.status(500).json({ error: "Internal server error" });
-}
+        return { statusCode: 500, body: JSON.stringify({ error: "Internal server error" }) };
+    }
 };

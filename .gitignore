@@ -1,4 +1,6 @@
-lambda/auth/oAuth2Authorizer/node_modules
-lambda/auth/oAuth2Callback/node_modules
-lambda/auth/auth-login/node_modules
-lambda/auth/auth-login/node_modules/@aws-crypto/sha256-browser/CHANGELOG.md
+# Dependencies
+**/node_modules/
+
+# Build outputs and packaged artifacts
+**/dist/
+lambda/**/*.zip
